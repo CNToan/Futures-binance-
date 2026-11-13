@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="vi">
+<!--
+=====================================================================
+GHI CHÚ LỊCH SỬ (DÀNH CHO AI TIẾP NHẬN FILE NÀY - ĐỌC TRƯỚC KHI SỬA)
+=====================================================================
+BỐI CẢNH NGƯỜI DÙNG
+- Người dùng KHÔNG phải dân lập trình. Luôn giải thích bằng tiếng Việt,
+  đơn giản, từng bước. Ưu tiên công cụ miễn phí, ít cài đặt.
+- Mục tiêu: website báo tín hiệu LONG/SHORT cho futures coin/USDT
+  (~200 cặp), khung thời gian càng nhỏ càng tốt (1m), chỉ báo khi ĐÚNG
+  điều kiện, điều kiện phải đổi được.
+- Vấn đề ban đầu: người dùng chưa có nguồn dữ liệu.
+
+QUYẾT ĐỊNH ĐÃ CHỐT
+- Nguồn dữ liệu: API công khai của Binance USDⓈ-M Futures (không cần
+  API key). REST để tải nến lịch sử, WebSocket để nhận nến realtime.
+- Kiến trúc v0.1: MỘT file HTML duy nhất, chạy ngay trong trình duyệt,
+  không cần server. Nhược điểm: phải mở tab liên tục mới có tín hiệu.
+- Chỉ xét tín hiệu khi nến ĐÓNG (tránh tín hiệu giả).
+- Điều kiện hiện tại (đổi được trên giao diện):
+  LONG  = EMA nhanh cắt lên EMA chậm + RSI > ngưỡng + volume > k lần TB20
+  SHORT = EMA nhanh cắt xuống EMA chậm + RSI < ngưỡng + volume > k lần TB20
+  Có cooldown theo từng cặp để không spam.
+
+NHẬT KÝ PHIÊN LÀM VIỆC (thêm dòng mới ở CUỐI danh sách, đừng xóa dòng cũ)
+- 2026-11-13 | Claude | v0.1 | Tạo bản mẫu: lấy top ~200 cặp USDT
+  perpetual theo khối lượng, tải 100 nến lịch sử, nghe WebSocket kline,
+  tính EMA/RSI/volume, bảng tín hiệu, bảng cài đặt, tab ghi chú.
+  CHƯA TEST trên máy người dùng.
+
+VIỆC CẦN LÀM TIẾP (gợi ý, theo thứ tự)
+1. Người dùng chạy thử, báo lỗi/hiện tượng (nếu có) cho AI.
+2. Nếu Binance bị chặn ở khu vực người dùng (lỗi 451/403): chuyển sang
+   Bybit hoặc OKX (API công khai tương tự).
+3. Thêm thông báo Telegram (cần tạo bot, hướng dẫn từng bước).
+4. Chạy 24/7 không cần mở tab: chuyển logic sang server nhỏ (VPS) hoặc
+   dịch vụ miễn phí, giữ nguyên bộ điều kiện.
+5. Backtest điều kiện trên dữ liệu lịch sử trước khi tin tín hiệu.
+6. Thêm chỉ báo/điều kiện khác (MACD, Bollinger, khung lớn xác nhận
+   xu hướng, lọc thanh khoản).
+
+CÁCH CẬP NHẬT FILE NÀY
+- Khi làm xong việc gì, thêm 1 dòng vào mảng HISTORY trong thẻ <script>
+  bên dưới VÀ đổi VERSION. Giữ nguyên khối ghi chú này, cập nhật phần
+  "VIỆC CẦN LÀM TIẾP".
+=====================================================================
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tín hiệu Futures</title>
+<style>
+  :root{
+    --bg:#10161d; --panel:#18212b; --line:#2a3745; --text:#e6edf3; --muted:#8b9bab;
+    --long:#2fd6a1; --short:#ff6b6b; --accent:#6aa7ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+  h1{font-size:18px;margin:0}
+  #status{color:var(--muted);font-size:13px}
+  #status.ok{color:var(--long)} #status.err{color:var(--short)}
+  nav{display:flex;gap:6px;padding:10px 16px 0}
+  nav button{background:none;border:0;color:var(--muted);padding:8px 12px;font:inherit;cursor:pointer;border-bottom:2px solid transparent}
+  nav button.on{color:var(--text);border-color:var(--accent)}
+  main{padding:16px;max-width:1000px;margin:0 auto}
+  .tab{display:none} .tab.on{display:block}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);font-size:14px}
+  th{color:var(--muted);font-weight:500}
+  .wrap{overflow-x:auto}
+  .side{font-weight:700}
+  .LONG{color:var(--long)} .SHORT{color:var(--short)}
+  .empty{color:var(--muted);padding:24px 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  label{display:block;font-size:13px;color:var(--muted)}
+  input,select{width:100%;margin-top:4px;padding:9px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:6px;font:inherit}
+  .btn{margin-top:16px;padding:11px 18px;background:var(--accent);color:#08111c;border:0;border-radius:6px;font:inherit;font-weight:600;cursor:pointer}
+  .btn.alt{background:var(--panel);color:var(--text);border:1px solid var(--line);margin-left:8px}
+  .note{color:var(--muted);font-size:13px;margin-top:12px}
+  .hist li{margin-bottom:8px}
+  .check{display:flex;gap:8px;align-items:center;margin-top:12px;color:var(--text)}
+  .check input{width:auto;margin:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Tín hiệu Futures USDT <span id="ver" style="color:var(--muted);font-weight:400"></span></h1>
+  <div id="status">Đang khởi động...</div>
+</header>
+<nav>
+  <button class="on" data-tab="signals">Tín hiệu</button>
+  <button data-tab="settings">Điều kiện</button>
+  <button data-tab="notes">Ghi chú lịch sử</button>
+</nav>
+<main>
+  <section class="tab on" id="signals">
+    <div class="wrap">
+      <table>
+        <thead><tr><th>Giờ</th><th>Cặp</th><th>Hướng</th><th>Giá</th><th>RSI</th><th>Volume</th><th>Khung</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty">Chưa có tín hiệu. Hệ thống chỉ báo khi nến đóng và đúng điều kiện, nên có thể phải chờ vài phút.</div>
+  </section>
+
+  <section class="tab" id="settings">
+    <div class="grid">
+      <label>Khung thời gian
+        <select id="tf"><option>1m</option><option>3m</option><option>5m</option><option>15m</option></select>
+      </label>
+      <label>Số cặp theo dõi (tối đa 200)<input id="top" type="number" min="10" max="200"></label>
+      <label>EMA nhanh<input id="emaFast" type="number" min="2"></label>
+      <label>EMA chậm<input id="emaSlow" type="number" min="3"></label>
+      <label>LONG: RSI phải lớn hơn<input id="rsiLong" type="number"></label>
+      <label>SHORT: RSI phải nhỏ hơn<input id="rsiShort" type="number"></label>
+      <label>Volume lớn hơn bao nhiêu lần trung bình 20 nến<input id="volMult" type="number" step="0.1"></label>
+      <label>Nghỉ giữa 2 tín hiệu của cùng 1 cặp (phút)<input id="cooldown" type="number" min="0"></label>
+    </div>
+    <label class="check"><input id="sound" type="checkbox"> Phát tiếng bíp khi có tín hiệu</label>
+    <button class="btn" id="save">Lưu và chạy lại</button>
+    <button class="btn alt" id="reset">Về mặc định</button>
+    <p class="note">Điều kiện LONG: EMA nhanh vừa cắt lên EMA chậm, RSI lớn hơn ngưỡng, volume đủ lớn. SHORT ngược lại. Tín hiệu chỉ tính khi nến đã đóng.</p>
+  </section>
+
+  <section class="tab" id="notes">
+    <p>Đây là nhật ký công việc. Khi đổi sang AI khác, gửi file này và nói: "Đọc phần GHI CHÚ LỊCH SỬ ở đầu file rồi làm tiếp".</p>
+    <ul class="hist" id="hist"></ul>
+    <button class="btn" id="copyNotes">Chép nhật ký để gửi AI</button>
+    <p class="note" id="copyMsg"></p>
+  </section>
+</main>
+
+<script>
+const VERSION = "v0.1";
+// Thêm dòng mới ở CUỐI mảng này mỗi khi làm xong việc gì. Không xóa dòng cũ.
+const HISTORY = [
+  "2026-11-13 | Claude | v0.1 | Tạo bản mẫu: top ~200 cặp USDT perpetual (Binance Futures), tải 100 nến lịch sử, nghe nến realtime, tính EMA/RSI/volume, bảng tín hiệu, cài đặt điều kiện, tab ghi chú. Chưa test trên máy người dùng."
+];
+
+const DEFAULTS = {tf:"1m", top:200, emaFast:9, emaSlow:21, rsiLong:50, rsiShort:50, volMult:1.5, cooldown:15, sound:true};
+let cfg = loadCfg();
+let sockets = [], data = {}, lastSignal = {}, signals = [], runId = 0;
+
+const $ = id => document.getElementById(id);
+$("ver").textContent = VERSION;
+
+function loadCfg(){
+  try{ return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem("cfg")||"{}")); }
+  catch(e){ return Object.assign({}, DEFAULTS); }
+}
+function saveCfg(){ try{ localStorage.setItem("cfg", JSON.stringify(cfg)); }catch(e){} }
+
+function setStatus(t, cls){ const s=$("status"); s.textContent=t; s.className=cls||""; }
+
+// ---------- Tính chỉ báo ----------
+function ema(arr, len){
+  const k = 2/(len+1); let e = arr[0];
+  const out = [e];
+  for(let i=1;i<arr.length;i++){ e = arr[i]*k + e*(1-k); out.push(e); }
+  return out;
+}
+function rsi(arr, len=14){
+  if(arr.length <= len) return null;
+  let g=0, l=0;
+  for(let i=1;i<=len;i++){ const d=arr[i]-arr[i-1]; if(d>=0) g+=d; else l-=d; }
+  g/=len; l/=len;
+  for(let i=len+1;i<arr.length;i++){
+    const d=arr[i]-arr[i-1];
+    g = (g*(len-1) + (d>0?d:0))/len;
+    l = (l*(len-1) + (d<0?-d:0))/len;
+  }
+  return l===0 ? 100 : 100 - 100/(1+g/l);
+}
+
+// ---------- Kiểm tra điều kiện khi nến đóng ----------
+function evaluate(sym){
+  const d = data[sym];
+  if(!d || d.c.length < Math.max(cfg.emaSlow*2, 30)) return;
+  const ef = ema(d.c, cfg.emaFast), es = ema(d.c, cfg.emaSlow);
+  const n = d.c.length-1;
+  const crossUp = ef[n-1] <= es[n-1] && ef[n] > es[n];
+  const crossDown = ef[n-1] >= es[n-1] && ef[n] < es[n];
+  if(!crossUp && !crossDown) return;
+  const r = rsi(d.c, 14);
+  if(r === null) return;
+  const vols = d.v.slice(-21, -1);
+  const avg = vols.reduce((a,b)=>a+b,0)/vols.length;
+  const vr = avg>0 ? d.v[n]/avg : 0;
+  if(vr < cfg.volMult) return;
+
+  let side = null;
+  if(crossUp && r > cfg.rsiLong) side = "LONG";
+  if(crossDown && r < cfg.rsiShort) side = "SHORT";
+  if(!side) return;
+
+  const now = Date.now();
+  if(lastSignal[sym] && now - lastSignal[sym] < cfg.cooldown*60000) return;
+  lastSignal[sym] = now;
+  addSignal({time:new Date(), sym, side, price:d.c[n], rsi:r, vr, tf:cfg.tf});
+}
+
+function addSignal(s){
+  signals.unshift(s);
+  if(signals.length > 200) signals.pop();
+  renderSignals();
+  if(cfg.sound) beep();
+}
+function fmtPrice(p){ return p>=100 ? p.toFixed(2) : p>=1 ? p.toFixed(4) : p.toPrecision(4); }
+function renderSignals(){
+  $("empty").style.display = signals.length ? "none" : "block";
+  $("rows").innerHTML = signals.map(s =>
+    `<tr><td>${s.time.toLocaleTimeString("vi-VN")}</td><td>${s.sym}</td>
+     <td class="side ${s.side}">${s.side}</td><td>${fmtPrice(s.price)}</td>
+     <td>${s.rsi.toFixed(1)}</td><td>${s.vr.toFixed(1)}x</td><td>${s.tf}</td></tr>`).join("");
+}
+function beep(){
+  try{
+    const a = new (window.AudioContext||window.webkitAudioContext)();
+    const o = a.createOscillator(); o.frequency.value = 880; o.connect(a.destination);
+    o.start(); setTimeout(()=>{o.stop(); a.close();}, 150);
+  }catch(e){}
+}
+
+// ---------- Kết nối dữ liệu Binance ----------
+const REST = "https://fapi.binance.com";
+const WS = "wss://fstream.binance.com/stream?streams=";
+
+async function start(){
+  const myRun = ++runId;
+  sockets.forEach(s => { s.onclose = null; try{s.close();}catch(e){} });
+  sockets = []; data = {}; lastSignal = {};
+  try{
+    setStatus("Đang lấy danh sách cặp...");
+    const [info, tick] = await Promise.all([
+      fetch(REST+"/fapi/v1/exchangeInfo").then(chk),
+      fetch(REST+"/fapi/v1/ticker/24hr").then(chk)
+    ]);
+    const ok = new Set(info.symbols
+      .filter(s => s.status==="TRADING" && s.contractType==="PERPETUAL" && s.quoteAsset==="USDT")
+      .map(s => s.symbol));
+    const list = tick.filter(t => ok.has(t.symbol))
+      .sort((a,b) => b.quoteVolume - a.quoteVolume)
+      .slice(0, cfg.top).map(t => t.symbol);
+
+    // Tải nến lịch sử, 10 cặp cùng lúc để không vượt giới hạn
+    let done = 0;
+    const queue = list.slice();
+    async function worker(){
+      while(queue.length){
+        if(myRun !== runId) return;
+        const sym = queue.shift();
+        try{
+          const k = await fetch(`${REST}/fapi/v1/klines?symbol=${sym}&interval=${cfg.tf}&limit=100`).then(chk);
+          const closed = k.slice(0,-1); // bỏ nến đang chạy
+          data[sym] = {c: closed.map(x=>+x[4]), v: closed.map(x=>+x[5])};
+        }catch(e){ /* bỏ qua cặp lỗi */ }
+        done++; setStatus(`Đang tải dữ liệu lịch sử ${done}/${list.length}...`);
+      }
+    }
+    await Promise.all(Array.from({length:10}, worker));
+    if(myRun !== runId) return;
+    openSockets(Object.keys(data), myRun);
+  }catch(e){
+    setStatus("Lỗi: " + e.message + " (nếu là 451/403 thì Binance đang bị chặn ở khu vực của bạn, hãy báo AI để đổi sang sàn khác)", "err");
+  }
+}
+function chk(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
+
+function openSockets(syms, myRun){
+  const groups = [];
+  for(let i=0;i<syms.length;i+=100) groups.push(syms.slice(i,i+100));
+  let open = 0;
+  groups.forEach(g => {
+    const url = WS + g.map(s => s.toLowerCase()+"@kline_"+cfg.tf).join("/");
+    const connect = () => {
+      const ws = new WebSocket(url);
+      sockets.push(ws);
+      ws.onopen = () => { open++; setStatus(`Đang theo dõi ${syms.length} cặp, khung ${cfg.tf}`, "ok"); };
+      ws.onmessage = ev => {
+        const k = JSON.parse(ev.data).data.k;
+        if(!k.x) return; // chỉ xử lý khi nến đóng
+        const d = data[k.s]; if(!d) return;
+        d.c.push(+k.c); d.v.push(+k.v);
+        if(d.c.length > 300){ d.c.shift(); d.v.shift(); }
+        evaluate(k.s);
+      };
+      ws.onclose = () => {
+        if(myRun !== runId) return;
+        setStatus("Mất kết nối, đang nối lại...", "err");
+        setTimeout(()=>{ if(myRun === runId) connect(); }, 3000);
+      };
+    };
+    connect();
+  });
+}
+
+// ---------- Giao diện ----------
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x===b));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id===b.dataset.tab));
+});
+
+function fillForm(){
+  ["tf","top","emaFast","emaSlow","rsiLong","rsiShort","volMult","cooldown"].forEach(k => $(k).value = cfg[k]);
+  $("sound").checked = cfg.sound;
+}
+$("save").onclick = () => {
+  const num = k => +$(k).value;
+  cfg = {tf:$("tf").value, top:Math.min(200, Math.max(10, num("top")||200)),
+    emaFast:num("emaFast")||9, emaSlow:num("emaSlow")||21,
+    rsiLong:num("rsiLong"), rsiShort:num("rsiShort"),
+    volMult:num("volMult"), cooldown:num("cooldown"), sound:$("sound").checked};
+  if(cfg.emaFast >= cfg.emaSlow){ alert("EMA nhanh phải nhỏ hơn EMA chậm."); return; }
+  saveCfg(); signals = []; renderSignals(); start();
+  document.querySelector('nav button[data-tab="signals"]').click();
+};
+$("reset").onclick = () => { cfg = Object.assign({}, DEFAULTS); fillForm(); };
+
+$("hist").innerHTML = HISTORY.map(h => `<li>${h}</li>`).join("");
+$("copyNotes").onclick = async () => {
+  const text = "GHI CHÚ LỊCH SỬ DỰ ÁN (" + VERSION + ")\n" + HISTORY.join("\n") +
+    "\n\nĐiều kiện hiện tại: " + JSON.stringify(cfg);
+  try{ await navigator.clipboard.writeText(text); $("copyMsg").textContent = "Đã chép."; }
+  catch(e){ $("copyMsg").textContent = "Không chép được, hãy bôi đen và chép tay."; }
+};
+
+fillForm(); renderSignals(); start();
+</script>
+</body>
+</html>
