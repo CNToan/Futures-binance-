@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTCUSDT · SMC + CVD + SuperTrend + DMI AI Signal Checker</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a2d;--panel2:#172238;--line:#27344d;--text:#e8eef9;--muted:#93a4bf;--green:#24c78a;--red:#ff647c;--blue:#54a6ff;--orange:#ffb454;--cyan:#6ee7e0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:18px 18px 12px;border-bottom:1px solid var(--line);background:#0e1628;position:sticky;top:0;z-index:3}
+h1{font-size:19px;margin:0 0 4px;letter-spacing:.2px}.sub{color:var(--muted);font-size:12px}
+.wrap{max-width:1500px;margin:auto;padding:14px;display:grid;gap:12px}
+.toolbar,.stats,.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.toolbar{padding:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button,select{background:var(--panel2);color:var(--text);border:1px solid #354663;border-radius:8px;padding:8px 11px;font:inherit}
+button{cursor:pointer}button:hover{border-color:var(--blue)}button.primary{background:#164a64;border-color:#287d9d}
+.status{margin-left:auto;color:var(--muted);font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:1px;overflow:hidden}
+.stat{padding:12px;background:var(--panel)}.stat small{display:block;color:var(--muted);font-size:11px}.stat strong{font-size:17px;display:block;margin-top:3px;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(290px,.8fr);gap:12px;align-items:start}
+.panel{padding:12px;min-width:0}.panel h2{font-size:14px;margin:0 0 8px}.panel p{color:var(--muted);font-size:12px;margin:4px 0 8px}
+canvas{display:block;width:100%;height:auto;background:#0d1526;border:1px solid #24334c;border-radius:8px;touch-action:pan-y}
+.legend{display:flex;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:11px;margin:8px 0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+.eventlist{display:grid;gap:7px;max-height:530px;overflow:auto}
+.event{padding:9px;border:1px solid var(--line);border-radius:8px;background:#10192b}
+.event b{font-size:12px}.event small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.tag{display:inline-block;border-radius:5px;padding:2px 6px;font-size:10px;margin-right:5px;background:#27354d;color:#dce8fa}
+.bull{color:var(--green)}.bear{color:var(--red)}.neutral{color:var(--orange)}
+.explain{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.explain .panel{min-height:160px}
+ul{padding-left:18px;margin:6px 0}li{margin:4px 0;color:#c5d0e3;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-weight:600}
+.note{padding:10px;border-left:3px solid var(--orange);background:#211d1a;color:#e9d8c5;border-radius:5px;font-size:11px}
+.good{border-left-color:var(--green);background:#10251f;color:#c9eee0}
+.ai-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.ai-grid label{display:grid;gap:5px;color:var(--muted);font-size:12px}.ai-grid input,.ai-grid select{width:100%;min-width:0;background:#0d1526;color:var(--text);border:1px solid #354663;border-radius:8px;padding:9px;font:inherit}.ai-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.ai-output{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;background:#0d1526;border:1px solid var(--line);border-radius:8px;padding:12px;min-height:110px;font-size:13px}.ai-meta{color:var(--muted);font-size:11px;margin:8px 0}.ai-warning{font-size:11px;color:#e9d8c5;background:#211d1a;border-left:3px solid var(--orange);padding:9px;border-radius:5px;margin-top:9px}
+.signal-card{border:1px solid var(--line);border-radius:10px;padding:14px;background:#10192b}.signal-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.signal-state{font-weight:800;font-size:16px}.signal-state.wait{color:var(--orange)}.signal-state.long{color:var(--green)}.signal-state.short{color:var(--red)}.signal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}.signal-metric{padding:8px;background:#0b1425;border-radius:7px}.signal-metric small{display:block;color:var(--muted);font-size:10px}.signal-metric b{font-size:13px}.signal-detail{font-size:12px;color:#c5d0e3;margin-top:10px}.signal-help{font-size:11px;color:var(--muted);margin-top:8px}@media(max-width:600px){.signal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.ai-grid{grid-template-columns:1fr}}
+footer{color:var(--muted);font-size:11px;padding:6px 2px 20px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.explain{grid-template-columns:1fr}.status{width:100%;margin:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>BTCUSDT · SMC + CVD + SuperTrend + DMI Signal Checker</h1>
+  <div class="sub">Binance USDⓈ-M Futures · 15 phút · tính toán trực tiếp trong Chrome · dữ liệu Binance không cần API key; AI cần API key riêng</div>
+</header>
+<div class="wrap">
+  <div class="toolbar">
+    <button class="primary" id="refresh">↻ Tải dữ liệu mới</button>
+    <label class="sub">Số nến hiển thị
+      <select id="bars"><option>60</option><option selected>100</option></select>
+    </label>
+    <label class="sub"><input type="checkbox" id="showOB" checked> Order Block</label>
+    <label class="sub"><input type="checkbox" id="showFVG" checked> FVG</label>
+    <label class="sub"><input type="checkbox" id="showSweep" checked> Liquidity Sweep</label>
+    <label class="sub"><input type="checkbox" id="showCVD" checked> CVD</label>
+    <span class="status" id="status">Đang chờ tải dữ liệu…</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><small>Giá đóng cửa nến 15m gần nhất</small><strong id="price">—</strong></div>
+    <div class="stat"><small>ATR(14)</small><strong id="atr">—</strong></div>
+    <div class="stat"><small>CVD tích lũy trong dữ liệu</small><strong id="cvd">—</strong></div>
+    <div class="stat"><small>Delta nến 15m gần nhất</small><strong id="delta">—</strong></div>
+    <div class="stat"><small>Vùng SMC còn hiệu lực</small><strong id="zones">—</strong></div>
+    <div class="stat"><small>Tỷ lệ Taker Buy nến 15m</small><strong id="buyRatio">—</strong></div>
+  </div>
+
+  <section class="panel">
+    <h2>Đọc nhanh trạng thái thị trường (chỉ mô tả dữ liệu)</h2>
+    <div id="readout" class="note">Đang chờ dữ liệu.</div>
+  </section>
+
+  <section class="panel" id="signalPanel">
+    <h2>Máy phát hiện cơ hội — chỉ bật AI khi có tín hiệu cần kiểm tra</h2>
+    <div class="signal-card">
+      <div class="signal-head"><span id="signalState" class="signal-state wait">ĐANG CHỜ DỮ LIỆU</span><span id="signalTime" class="sub">—</span></div>
+      <div class="signal-grid">
+        <div class="signal-metric"><small>Supertrend (10, 3)</small><b id="stValue">—</b></div>
+        <div class="signal-metric"><small>ADX (14, 14)</small><b id="adxValue">—</b></div>
+        <div class="signal-metric"><small>+DI / −DI</small><b id="diValue">—</b></div>
+        <div class="signal-metric"><small>Delta 3 nến</small><b id="delta3Value">—</b></div>
+      </div>
+      <div id="signalDetail" class="signal-detail">Đang chờ tải dữ liệu Binance.</div>
+      <div class="signal-help">Chỉ là bộ lọc phát hiện ứng viên, không phải lệnh. Binance tự cập nhật mỗi 60 giây khi trang đang hiển thị; AI không tự chạy. Điều kiện dùng nến M15 đã đóng; AI sẽ kiểm tra lại SMC, CVD, xung đột và R:R trước khi đưa ra Entry/TP/SL.</div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Biểu đồ giá BTCUSDT · 15m</h2>
+      <p>Nến xanh/đỏ là giá. Các vùng màu là OB/FVG. Nhãn BOS/CHoCH và Sweep đánh dấu sự kiện đã xác nhận.</p>
+      <canvas id="chart" width="1100" height="650"></canvas>
+      <div class="legend">
+        <span><i class="dot" style="background:#24c78a"></i>Nến tăng</span>
+        <span><i class="dot" style="background:#ff647c"></i>Nến giảm</span>
+        <span><i class="dot" style="background:#24c78a"></i>OB tăng</span>
+        <span><i class="dot" style="background:#ff647c"></i>OB giảm</span>
+        <span><i class="dot" style="background:#54a6ff"></i>FVG tăng</span>
+        <span><i class="dot" style="background:#ffb454"></i>FVG giảm</span>
+        <span><i class="dot" style="background:#6ee7e0"></i>Quét đáy</span>
+        <span><i class="dot" style="background:#ffb454"></i>Quét đỉnh</span>
+      </div>
+    </section>
+    <aside class="panel">
+      <h2>Nhật ký sự kiện mới nhất</h2>
+      <p>Mỗi dòng là một sự kiện do quy tắc chỉ báo phát hiện, không phải lệnh giao dịch.</p>
+      <div class="eventlist" id="events"><div class="event">Chưa có dữ liệu.</div></div>
+    </aside>
+  </div>
+
+  <section class="panel" id="aiPanel">
+    <h2>AI kiểm tra tín hiệu — Groq nhiều giai đoạn (tối đa 10 phút)</h2>
+    <p>Chỉ gọi AI khi bộ lọc phía trên phát hiện ứng viên LONG/SHORT. AI đóng vai trò kiểm tra độc lập, không tự động gửi lệnh. Bạn cần API key của nhà cung cấp; key không được ghi vào file HTML.</p>
+    <div class="ai-grid">
+      <label>Nhà cung cấp AI
+        <select id="aiProvider"><option value="groq" selected>Groq Free · phân tích nhiều giai đoạn</option><option value="gemini">Google Gemini · một lượt</option></select>
+      </label>
+      <label>Tên model
+        <input id="aiModel" type="text" value="gemini-3.5-flash-lite" autocomplete="off" spellcheck="false">
+      </label>
+      <label style="grid-column:1/-1">API key
+        <input id="aiKey" type="password" placeholder="Dán API key vào đây" autocomplete="off" spellcheck="false">
+      </label>
+    </div>
+    <div class="ai-actions">
+      <label style="display:flex;gap:6px;align-items:center;color:var(--muted);font-size:11px"><input type="checkbox" id="rememberAIKey"> Ghi nhớ API key trên thiết bị này</label>
+      <button type="button" class="primary" id="analyzeAI">✦ AI kiểm tra tín hiệu</button>
+      <button type="button" id="cancelAI">Dừng phân tích</button>
+      <button id="clearAIKey">Xóa key đã lưu</button>
+    </div>
+    <div class="ai-meta" id="aiStatus">Chưa có tín hiệu cần AI kiểm tra. Tải dữ liệu mới; nút AI chỉ bật khi bộ lọc phát hiện ứng viên.</div>
+    <div class="ai-meta" id="aiProgress" aria-live="polite">Chỉ chạy khi có ứng viên; Groq dùng 4 phần lịch sử + 1 lượt chấm tín hiệu cuối.</div>
+    <div class="ai-output" id="aiOutput">Chưa có tín hiệu để chấm. Khi có ứng viên, AI chỉ trả LONG/SHORT/WAIT cùng Entry, TP, SL và R:R; không gửi lệnh.</div>
+    <div class="ai-warning">Bảo mật: API key chỉ được dùng từ trình duyệt của bạn để gọi thẳng nhà cung cấp. Không gửi key cho người khác, không đăng file đã điền key lên GitHub. Nếu bật “Ghi nhớ”, key được lưu trong bộ nhớ trình duyệt trên thiết bị này. Gemini có quota miễn phí giới hạn; Groq Free cũng có quota miễn phí và sẽ từ chối yêu cầu khi hết hạn mức. Không thêm phương thức thanh toán, không nâng cấp Developer/paid.</div>
+  </section>
+
+  <div class="explain">
+    <section class="panel">
+      <h2>1. SMC Zones — máy đọc cấu trúc và vùng giá</h2>
+      <ul>
+        <li><b>Swing High/Low:</b> một đỉnh/đáy chỉ được xác nhận khi có 3 nến bên trái và 3 nến bên phải thỏa quy tắc. Vì vậy nó có độ trễ 3 nến.</li>
+        <li><b>BOS:</b> giá đóng cửa vượt swing mới nhất chưa bị phá theo hướng đó.</li>
+        <li><b>CHoCH:</b> cú phá cấu trúc đi ngược hướng của lần phá trước đó.</li>
+        <li><b>Order Block:</b> vùng lấy từ nến ngược chiều gần điểm bắt đầu của nhịp phá swing; ranh giới được tính theo quy tắc trong mã nguồn.</li>
+        <li><b>FVG:</b> khoảng trống giữa nến hiện tại và nến cách đó 2 cây, phải lớn ít nhất 0,2 ATR.</li>
+        <li><b>Liquidity Sweep:</b> râu nến vượt swing ít nhất 0,1 ATR nhưng giá đóng cửa quay trở lại phía trong.</li>
+      </ul>
+      <div class="note">Mặc định thử nghiệm: swing=3, ATR=14, FVG tối thiểu=0,2 ATR; OB bị vô hiệu khi đóng cửa vượt cạnh xa; FVG bị vô hiệu khi râu nến chạm cạnh xa. Chỉ dùng nến đã đóng.</div>
+    </section>
+    <section class="panel">
+      <h2>2. CVD — máy ước lượng áp lực mua/bán</h2>
+      <ul>
+        <li>Lấy trực tiếp trường <b>Taker Buy Base Volume</b> do Binance cung cấp trong từng nến 1 phút.</li>
+        <li>Delta = 2 × Taker Buy Volume − Total Volume. Đây là chênh lệch khối lượng mua chủ động và bán chủ động do sàn tổng hợp, không suy đoán theo màu nến.</li>
+        <li>Cộng 15 nến 1 phút thành Delta của một nến 15 phút.</li>
+        <li><b>CVD:</b> cộng dồn Delta để quan sát bên mua/bán đang chiếm ưu thế trong chuỗi dữ liệu.</li>
+        <li><b>Phân kỳ thường:</b> giá tạo đỉnh cao hơn nhưng CVD tạo đỉnh thấp hơn (bearish), hoặc giá tạo đáy thấp hơn nhưng CVD tạo đáy cao hơn (bullish).</li>
+        <li><b>Absorption divergence:</b> giá dịch chuyển một hướng nhưng CVD dịch chuyển mạnh theo hướng ngược lại, đo bằng Z-score.</li>
+      </ul>
+      <div class="note good">Delta dùng trường taker-buy volume của Binance Futures, chính xác hơn cách đoán mua/bán từ màu nến con. Tuy vậy đây vẫn là dữ liệu tổng hợp theo nến, không phải footprint từng mức giá. CVD cộng dồn liên tục trong 200 nến được tải; điểm bắt đầu là đầu cửa sổ dữ liệu, không phải toàn bộ lịch sử BTC.</div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>3. Bộ lọc tín hiệu bổ sung từ TradingView</h2>
+    <ul>
+      <li><b>SuperTrend (ATR 10, hệ số 3):</b> tạo đường xu hướng động theo ATR; chỉ dùng hướng và thời điểm đảo chiều trên nến M15 đã đóng. Nó là bộ kích hoạt xu hướng, không tự quyết định điểm vào.</li>
+      <li><b>DMI/ADX (14, 14):</b> +DI so với −DI xác định bên đang chiếm ưu thế; ADX đo độ mạnh xu hướng, không cho biết hướng. Bộ lọc khởi đầu yêu cầu ADX ≥ 20 và DI cùng hướng với SuperTrend.</li>
+      <li><b>Điều kiện ứng viên:</b> có kích hoạt SuperTrend/BOS/CHoCH/Sweep gần đây, có hỗ trợ SMC cùng hướng, DMI/ADX xác nhận, không có BOS ngược chiều mới, dữ liệu Delta/CVD M1 đầy đủ. CVD/Delta vẫn được AI kiểm tra để phát hiện xung đột, không bị bỏ qua.</li>
+    </ul>
+    <div class="note">Công thức được cài lại theo nguyên lý ATR-SuperTrend và Wilder DMI/ADX, không tuyên bố sao chép nguyên văn mã cộng đồng. Các ngưỡng 10/3 và ADX 20 là cấu hình khởi đầu để thử nghiệm, chưa phải tham số đã chứng minh lợi nhuận. Chỉ ứng viên mới bật nút AI; ứng viên không đồng nghĩa chắc chắn nên vào lệnh.</div>
+    <p>Nguồn TradingView: <a href="https://www.tradingview.com/script/VLWVV7tH-SuperTrend-everget/" target="_blank" rel="noopener">SuperTrend [everget]</a> · <a href="https://www.tradingview.com/script/VroqhJmg/" target="_blank" rel="noopener">Directional Movement Index and ADX</a>.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Bảng vùng giá SMC còn hiệu lực</h2>
+    <div style="overflow:auto"><table><thead><tr><th>Loại</th><th>Hướng</th><th>Giá trên</th><th>Giá dưới</th><th>Thời điểm tạo</th><th>Tuổi (nến)</th></tr></thead><tbody id="zoneTable"><tr><td colspan="6">Chưa có dữ liệu.</td></tr></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Thông tin chất lượng dữ liệu</h2>
+    <div id="quality" class="note">Chưa tải dữ liệu.</div>
+  </section>
+
+  <footer>
+    Nguồn: <a href="https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data" target="_blank" rel="noopener">Binance USDⓈ-M Futures Klines</a>. Thuật toán tham chiếu: <a href="https://github.com/allanninal/smc-zones-pine" target="_blank" rel="noopener">SMC Zones</a> (Allan Niñal, PolyForm Noncommercial 1.0.0; chỉ dùng phi thương mại) và <a href="https://github.com/Robwhitlow3/tradingview-orderflow-indicators" target="_blank" rel="noopener">TradingView Orderflow Indicators / CVD</a> (Rob Whitlow, MIT), bổ sung SuperTrend [everget] và DMI/ADX [OskarGallard] theo mô tả mã mở trên TradingView. Không cần API key, không gửi lệnh. Đây là bản port nghiên cứu, không phải xác nhận lợi nhuận hay lời khuyên đầu tư.
+  </footer>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+// Hiển thị lỗi JavaScript thay vì để giao diện im lặng.
+window.addEventListener('error', e => {
+  const el = $('aiStatus');
+  if (el) el.textContent = 'Lỗi JavaScript: ' + (e.message || 'không xác định') + (e.lineno ? ' (dòng ' + e.lineno + ')' : '');
+});
+window.addEventListener('unhandledrejection', e => {
+  const el = $('aiStatus');
+  if (el) el.textContent = 'Lỗi xử lý nền: ' + (e.reason?.message || String(e.reason || 'không xác định'));
+});
+const state = {bars:[],ltf:[],atr:[],zones:[],live:[],breaks:[],sweeps:[],cvd:[],delta:[],buy:[],sell:[],buyRatio:[],cvdEvents:[],events:[],quality:{},supertrend:[],dmi:null,candidate:null,loadedAt:0};
+const fmt = (v,d=1) => Number.isFinite(v) ? v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
+const timeText = t => new Date(t).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',hour12:false});
+const shortTime = t => new Date(t).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+const signClass = d => d>0?'bull':'bear';
+const dirText = d => d>0?'TĂNG':'GIẢM';
+
+async function getKlines(interval,limit,extra=''){
+  const url=`https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=${interval}&limit=${limit}${extra}`;
+  const res=await fetch(url,{cache:'no-store'});
+  if(!res.ok) throw new Error(`Binance trả HTTP ${res.status} khi tải nến ${interval}`);
+  const raw=await res.json();
+  if(!Array.isArray(raw)) throw new Error('Dữ liệu Binance không đúng định dạng.');
+  return raw.map(x=>({t:+x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5],ct:+x[6],q:+x[7],trades:+x[8],tb:+x[9],tq:+x[10]}))
+    .filter(x=>x.ct<Date.now());
+}
+function calcATR(bars,n=14){
+  const tr=bars.map((b,i)=>Math.max(b.h-b.l,i?Math.abs(b.h-bars[i-1].c):0,i?Math.abs(b.l-bars[i-1].c):0));
+  const out=Array(bars.length).fill(null);
+  if(bars.length<n)return out;
+  let v=tr.slice(0,n).reduce((a,b)=>a+b,0)/n;out[n-1]=v;
+  for(let i=n;i<bars.length;i++){v=(v*(n-1)+tr[i])/n;out[i]=v;}
+  return out;
+}
+function calcSMC(bars,atr){
+  const zones=[],live=[],swings=[],breaks=[],sweeps=[];
+  const newest={1:null,'-1':null};let trend=0;
+  const against=(i,d)=>d>0?bars[i].c<bars[i].o:bars[i].c>bars[i].o;
+  function isMit(z,b){
+    // Gốc mặc định: OB = far-edge close; FVG = far-edge wick.
+    return z.kind==='OB' ? (z.d>0?b.c<z.bot:b.c>z.top) : (z.d>0?b.l<=z.bot:b.h>=z.top);
+  }
+  for(let i=0;i<bars.length;i++){
+    if(atr[i]>0){
+      for(let k=live.length-1;k>=0;k--){
+        const z=live[k];if(z.born>=i)continue;
+        if(isMit(z,bars[i])){z.end=i;live.splice(k,1);}
+        else{
+          const inside=z.d>0?bars[i].l<=z.top:bars[i].h>=z.bot;
+          if(inside&&!z.inside){z.touches=(z.touches||0)+1;z.lastTouch=i;}
+          z.inside=inside;
+        }
+      }
+      // Liquidity sweep: quét swing chưa bị lấy, trong 60 nến gần nhất.
+      for(const d of [1,-1]){
+        let best=null;
+        for(let k=swings.length-1;k>=0;k--){
+          const s=swings[k];if(i-s.i>60)break;
+          if(s.side!==-d||s.swept)continue;
+          const far=d>0?bars[i].l:bars[i].h;
+          if((far-(s.p-d*.10*atr[i]))*d<0){
+            s.swept=true;
+            if((bars[i].c-s.p)*d>0&&(!best||s.p*d<best.p*d))best=s;
+          }
+        }
+        if(best)sweeps.push({i,d,level:best.p,from:best.i,time:bars[i].t});
+      }
+      // FVG: gap giữa nến hiện tại và nến cách 2 cây.
+      if(i>=2)for(const d of [1,-1]){
+        const gap=d>0?bars[i].l-bars[i-2].h:bars[i-2].l-bars[i].h;
+        if(gap>=.20*atr[i]){
+          const top=d>0?bars[i].l:bars[i-2].l;
+          const bot=d>0?bars[i-2].h:bars[i].h;
+          const z={kind:'FVG',d,top,bot,born:i,t0:i-1,end:null,inside:false};
+          zones.push(z);live.push(z);
+        }
+      }
+      // BOS / CHoCH và Order Block.
+      for(const d of [1,-1]){
+        const s=newest[String(d)];
+        if(!s||s.broken||(bars[i].c-s.p)*d<=0)continue;
+        s.broken=true;const choch=trend===-d;trend=d;
+        let org=s.i;
+        for(let j=s.i;j<=i;j++){
+          const fj=d>0?bars[j].l:bars[j].h,fo=d>0?bars[org].l:bars[org].h;
+          if((fj-fo)*d<0)org=j;
+        }
+        let ob=-1;
+        if(against(org,d)){
+          ob=org;
+          while(ob+1<i&&against(ob+1,d))ob++;
+        }else{
+          for(let j=org-1;j>=Math.max(0,org-3);j--){if(against(j,d)){ob=j;break;}}
+        }
+        if(ob<0)ob=org;
+        const top=d>0?bars[ob].h:Math.max(bars[ob].h,bars[org].h);
+        const bot=d>0?Math.min(bars[ob].l,bars[org].l):bars[ob].l;
+        const z={kind:'OB',d,top,bot,born:i,t0:Math.min(ob,org),end:null,inside:false};
+        zones.push(z);live.push(z);
+        breaks.push({i,d,choch,level:s.p,from:s.i,obTop:top,obBot:bot,time:bars[i].t});
+      }
+    }
+    // Swing ở vị trí i-3 chỉ được biết sau khi đủ 3 nến bên phải.
+    const p=i-3;
+    if(p>=3){
+      for(const side of [1,-1]){
+        let ok=true;
+        for(let k=1;k<=3;k++){
+          if(side>0?(bars[p-k].h>=bars[p].h||bars[p+k].h>bars[p].h):(bars[p-k].l<=bars[p].l||bars[p+k].l<bars[p].l)){ok=false;break;}
+        }
+        if(ok){const s={i:p,p:side>0?bars[p].h:bars[p].l,side,swept:false,broken:false};swings.push(s);newest[String(side)]=s;}
+      }
+    }
+  }
+  return {zones,live,breaks,sweeps,swings,trend};
+}
+function calcCVD(bars,ltf){
+  const byStart=new Map();
+  for(const b of ltf){const key=Math.floor(b.t/900000)*900000;if(!byStart.has(key))byStart.set(key,[]);byStart.get(key).push(b);}
+  const delta=[],cvd=[],buy=[],sell=[],buyRatio=[];let sum=0,missing=0;
+  for(const b of bars){
+    const subs=(byStart.get(b.t)||[]).sort((a,b)=>a.t-b.t);
+    const total=subs.reduce((s,x)=>s+x.v,0);
+    const takerBuy=subs.reduce((s,x)=>s+x.tb,0);
+    const complete=subs.length===15&&subs[0]?.t===b.t&&subs[14]?.t===b.t+14*60000;
+    const takerSell=Math.max(0,total-takerBuy);
+    const d=2*takerBuy-total;
+    delta.push(complete?d:null);buy.push(complete?takerBuy:null);sell.push(complete?takerSell:null);
+    buyRatio.push(complete&&total>0?takerBuy/total:null);
+    if(complete){sum+=d;cvd.push(sum);}else{missing++;cvd.push(null);}
+  }
+  // CVD Pine rules: classic pivot divergence and absorption divergence.
+  const events=[],ph=[],pl=[],pivot=5,maxLook=60,window=5;
+  function isPH(p){for(let k=1;k<=pivot;k++)if(bars[p-k].h>=bars[p].h||bars[p+k].h>bars[p].h)return false;return true;}
+  function isPL(p){for(let k=1;k<=pivot;k++)if(bars[p-k].l<=bars[p].l||bars[p+k].l<bars[p].l)return false;return true;}
+  for(let i=0;i<bars.length;i++){
+    const p=i-pivot;
+    if(p>=pivot&&cvd[p]!=null){
+      if(isPH(p)){
+        const prev=ph.at(-1);
+        if(prev&&p-prev.i<=maxLook&&bars[p].h>bars[prev.i].h&&cvd[p]<prev.cvd)
+          events.push({type:'CVD phân kỳ giảm',kind:'divergence',d:-1,i:p,confirmed:i,price:bars[p].h,cvd:cvd[p],detail:'Giá tạo đỉnh cao hơn nhưng CVD tạo đỉnh thấp hơn. Pivot chỉ được xác nhận sau 5 nến.'});
+        ph.push({i:p,cvd:cvd[p]});
+      }
+      if(isPL(p)){
+        const prev=pl.at(-1);
+        if(prev&&p-prev.i<=maxLook&&bars[p].l<bars[prev.i].l&&cvd[p]>prev.cvd)
+          events.push({type:'CVD phân kỳ tăng',kind:'divergence',d:1,i:p,confirmed:i,price:bars[p].l,cvd:cvd[p],detail:'Giá tạo đáy thấp hơn nhưng CVD tạo đáy cao hơn. Pivot chỉ được xác nhận sau 5 nến.'});
+        pl.push({i:p,cvd:cvd[p]});
+      }
+    }
+  }
+  const drifts=bars.map((b,i)=>i>=window&&cvd[i]!=null&&cvd[i-window]!=null?cvd[i]-cvd[i-window]:null);
+  let lastEmit=-10000;
+  for(let i=0;i<bars.length;i++){
+    if(i<window||i<100||drifts[i]==null||!Number.isFinite(state.atr[i])||state.atr[i]<=0)continue;
+    const hist=drifts.slice(Math.max(0,i-99),i+1).filter(Number.isFinite);
+    if(hist.length<30)continue;
+    const mean=hist.reduce((s,x)=>s+x,0)/hist.length;
+    const sd=Math.sqrt(hist.reduce((s,x)=>s+(x-mean)**2,0)/hist.length);
+    if(sd<=0)continue;
+    const z=(drifts[i]-mean)/sd;
+    const priceDrift=bars[i].c-bars[i-window].c;
+    const movePct=Math.abs(priceDrift)/state.atr[i]*100;
+    if(movePct>=30&&Math.abs(z)>=1.5&&i-lastEmit>=window){
+      if(priceDrift>0&&z<=-1.5){events.push({type:'CVD hấp thụ bán',kind:'absorption',d:-1,i,confirmed:i,price:bars[i].h,cvd:cvd[i],z,detail:'Giá tăng nhưng CVD giảm mạnh; có thể có lực bán chủ động đối ứng với nhịp tăng.'});lastEmit=i;}
+      else if(priceDrift<0&&z>=1.5){events.push({type:'CVD hấp thụ mua',kind:'absorption',d:1,i,confirmed:i,price:bars[i].l,cvd:cvd[i],z,detail:'Giá giảm nhưng CVD tăng mạnh; có thể có lực mua chủ động đối ứng với nhịp giảm.'});lastEmit=i;}
+    }
+  }
+  return {delta,cvd,buy,sell,buyRatio,events,missing};
+}
+function calcSupertrend(bars,period=10,mult=3){
+  const atr=calcATR(bars,period),upper=[],lower=[],line=[],dir=[];
+  for(let i=0;i<bars.length;i++){
+    if(!Number.isFinite(atr[i])){upper.push(null);lower.push(null);line.push(null);dir.push(0);continue;}
+    const mid=(bars[i].h+bars[i].l)/2,basicU=mid+mult*atr[i],basicL=mid-mult*atr[i];
+    if(i===0||!Number.isFinite(upper[i-1])){upper[i]=basicU;lower[i]=basicL;dir[i]=bars[i].c>=mid?1:-1;}
+    else{
+      upper[i]=(basicU<upper[i-1]||bars[i-1].c>upper[i-1])?basicU:upper[i-1];
+      lower[i]=(basicL>lower[i-1]||bars[i-1].c<lower[i-1])?basicL:lower[i-1];
+      const prev=dir[i-1];
+      dir[i]=prev>0?(bars[i].c<lower[i]?-1:1):(bars[i].c>upper[i]?1:-1);
+    }
+    line[i]=dir[i]>0?lower[i]:upper[i];
+  }
+  return {atr,upper,lower,line,dir,period,mult};
+}
+function calcDMI(bars,diLength=14,adxLength=14){
+  const n=bars.length,tr=Array(n).fill(null),pdm=Array(n).fill(0),mdm=Array(n).fill(0);
+  const plus=Array(n).fill(null),minus=Array(n).fill(null),dx=Array(n).fill(null),adx=Array(n).fill(null);
+  for(let i=1;i<n;i++){
+    tr[i]=Math.max(bars[i].h-bars[i].l,Math.abs(bars[i].h-bars[i-1].c),Math.abs(bars[i].l-bars[i-1].c));
+    const up=bars[i].h-bars[i-1].h,down=bars[i-1].l-bars[i].l;
+    pdm[i]=up>down&&up>0?up:0;mdm[i]=down>up&&down>0?down:0;
+  }
+  if(n<=diLength)return {plus,minus,adx,diLength,adxLength};
+  let sTR=tr.slice(1,diLength+1).reduce((a,b)=>a+(b||0),0);
+  let sP=pdm.slice(1,diLength+1).reduce((a,b)=>a+b,0),sM=mdm.slice(1,diLength+1).reduce((a,b)=>a+b,0);
+  const calcDI=i=>{
+    plus[i]=sTR?100*sP/sTR:0;minus[i]=sTR?100*sM/sTR:0;
+    const den=plus[i]+minus[i];dx[i]=den?100*Math.abs(plus[i]-minus[i])/den:0;
+  };
+  calcDI(diLength);
+  for(let i=diLength+1;i<n;i++){
+    sTR=sTR-sTR/diLength+(tr[i]||0);sP=sP-sP/diLength+pdm[i];sM=sM-sM/diLength+mdm[i];calcDI(i);
+  }
+  const first=diLength+adxLength-1;
+  if(n>first){
+    let seed=0;for(let i=diLength;i<=first;i++)seed+=dx[i]||0;
+    adx[first]=seed/adxLength;
+    for(let i=first+1;i<n;i++)adx[i]=(adx[i-1]*(adxLength-1)+(dx[i]||0))/adxLength;
+  }
+  return {plus,minus,dx,adx,diLength,adxLength};
+}
+function detectCandidate(){
+  const n=state.bars.length,i=n-1;if(n<40||!state.dmi||!state.supertrend?.dir?.length)return null;
+  const dir=state.supertrend.dir[i],adx=state.dmi.adx[i],pdi=state.dmi.plus[i],mdi=state.dmi.minus[i];
+  if(!dir||![adx,pdi,mdi].every(Number.isFinite))return null;
+  const st=state.supertrend;
+  let flipIndex=-1;for(let j=Math.max(1,i-2);j<=i;j++)if(st.dir[j]===dir&&st.dir[j-1]!==dir)flipIndex=j;
+  const sameBreak=state.breaks.filter(e=>e.d===dir&&e.i>=i-5).at(-1)||null;
+  const sameSweep=state.sweeps.filter(e=>e.d===dir&&e.i>=i-3).at(-1)||null;
+  const breakTrigger=sameBreak&&i-sameBreak.i<=2;
+  const sweepTrigger=sameSweep&&i-sameSweep.i<=1;
+  const trigger=flipIndex>=0||breakTrigger||sweepTrigger;
+  const smcSupport=!!sameBreak||!!sameSweep;
+  const opposingRecent=state.breaks.some(e=>e.d===-dir&&e.i>=i-2);
+  const dmiAligned=dir>0?pdi>mdi:mdi>pdi;
+  const dmiStrong=adx>=20;
+  const last3=state.delta.slice(-3);
+  const delta3=last3.every(Number.isFinite)?last3.reduce((a,b)=>a+b,0):null;
+  const recentCvd=state.cvdEvents.filter(e=>e.confirmed>=i-8).at(-1)||null;
+  const cvdConflict=(delta3!=null&&delta3*dir<0)||(recentCvd&&recentCvd.d===-dir);
+  const dataReady=last3.length===3&&last3.every(Number.isFinite)&&Number.isFinite(state.buyRatio[i]);
+  if(!(trigger&&smcSupport&&dmiAligned&&dmiStrong&&!opposingRecent&&dataReady))return null;
+  const reason=flipIndex>=0?`Supertrend vừa đảo sang ${dir>0?'tăng':'giảm'} ở nến ${i-flipIndex} nến trước`:breakTrigger?`${sameBreak.choch?'CHoCH':'BOS'} cùng hướng vừa xác nhận`: 'Liquidity Sweep cùng hướng vừa xuất hiện';
+  return {direction:dir>0?'LONG':'SHORT',d:dir,barIndex:i,barTime:state.bars[i].t,barCloseTime:state.bars[i].t+900000,close:state.bars[i].c,atr:state.atr[i],reason,supertrend:st.line[i],adx,pdi,mdi,delta3,cvdConflict:!!cvdConflict,cvdEvent:recentCvd?{type:recentCvd.type,d:recentCvd.d,time:state.bars[recentCvd.confirmed].t}:null,structure:sameBreak?{type:sameBreak.choch?'CHoCH':'BOS',level:sameBreak.level,time:state.bars[sameBreak.i].t}:null,sweep:sameSweep?{level:sameSweep.level,time:state.bars[sameSweep.i].t}:null};
+}
+function renderSignal(){
+  const c=state.candidate,idx=state.bars.length-1;
+  const st=state.supertrend?.dir?.[idx]||0,dmi=state.dmi;
+  $('stValue').textContent=st>0?'TĂNG':st<0?'GIẢM':'—';
+  const ax=dmi?.adx[idx],pd=dmi?.plus[idx],md=dmi?.minus[idx];
+  $('adxValue').textContent=Number.isFinite(ax)?fmt(ax,1):'—';
+  $('diValue').textContent=Number.isFinite(pd)&&Number.isFinite(md)?`${fmt(pd,1)} / ${fmt(md,1)}`:'—';
+  const d3=state.delta.slice(-3);$('delta3Value').textContent=d3.length===3&&d3.every(Number.isFinite)?fmt(d3.reduce((a,b)=>a+b,0),1)+' BTC':'Thiếu';
+  const btn=$('analyzeAI');
+  if(c){
+    const fresh=Date.now()-c.barCloseTime<=30*60*1000;
+    $('signalState').className='signal-state '+(c.d>0?'long':'short');
+    $('signalState').textContent=fresh?`ỨNG VIÊN ${c.direction} — CHỜ AI CHẤM`:'ỨNG VIÊN ĐÃ CŨ — CẦN TẢI LẠI';
+    $('signalTime').textContent=timeText(c.barTime);
+    $('signalDetail').textContent=`${c.reason}. ADX ${fmt(c.adx,1)}; ${c.d>0?'+DI':'−DI'} đang chiếm ưu thế. ${c.cvdConflict?'CẢNH BÁO: CVD/Delta đang có dấu hiệu xung đột; AI phải kiểm tra kỹ.':'Chưa thấy xung đột CVD rõ rệt ở bộ lọc ban đầu.'} Đây chưa phải lệnh vào.`;
+    btn.disabled=!fresh;
+    $('aiStatus').textContent=fresh?'Đã phát hiện ứng viên. Nhập API key nếu chưa có, rồi bấm AI kiểm tra tín hiệu.':'Tín hiệu đã cũ; hãy tải dữ liệu mới trước khi gọi AI.';
+  }else{
+    $('signalState').className='signal-state wait';$('signalState').textContent='WAIT — CHƯA CÓ ỨNG VIÊN ĐẠT BỘ LỌC';$('signalTime').textContent=state.loadedAt?`Cập nhật ${timeText(state.loadedAt)}`:'—';
+    $('signalDetail').textContent='Chưa đồng thời đạt điều kiện Supertrend + DMI/ADX + sự kiện SMC + chất lượng dữ liệu. Không cần bấm AI. Dữ liệu Binance tự cập nhật mỗi 60 giây khi trang đang mở; bạn cũng có thể bấm Tải dữ liệu mới.';
+    btn.disabled=true;$('aiStatus').textContent='WAIT: không có ứng viên đủ điều kiện, AI chưa cần chạy.';
+  }
+}
+
+function draw(){
+  const canvas=$('chart'),ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1526';ctx.fillRect(0,0,W,H);
+  const count=+$('bars').value,bars=state.bars.slice(-count),offset=state.bars.length-bars.length;
+  if(!bars.length)return;
+  const left=68,right=22,top=28,priceBottom=440,cvdTop=490,cvdBottom=610;
+  const min=Math.min(...bars.map(b=>b.l)),max=Math.max(...bars.map(b=>b.h)),pad=(max-min)*.07||1;
+  const lo=min-pad,hi=max+pad,plotW=W-left-right,step=plotW/bars.length,candleW=Math.max(2,step*.58);
+  const y=p=>priceBottom-(p-lo)/(hi-lo)*(priceBottom-top);
+  ctx.font='11px system-ui';ctx.textAlign='right';ctx.fillStyle='#9aaac2';
+  for(let k=0;k<=5;k++){const p=lo+(hi-lo)*k/5,yy=y(p);ctx.strokeStyle='#22314a';ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(W-right,yy);ctx.stroke();ctx.fillText(fmt(p,0),left-8,yy+4);}
+  // SMC zones, only if they intersect visible price range.
+  for(const z of state.live){
+    if(z.born>=offset+bars.length)continue;
+    if((z.kind==='OB'&&!$('showOB').checked)||(z.kind==='FVG'&&!$('showFVG').checked))continue;
+    const x=left+(Math.max(z.born,offset)-offset)*step,yt=y(z.top),yb=y(z.bot);
+    if(z.top<lo||z.bot>hi)continue;
+    const col=z.kind==='OB'?(z.d>0?'36,199,138':'255,100,124'):(z.d>0?'84,166,255':'255,180,84');
+    ctx.fillStyle=`rgba(${col},.13)`;ctx.strokeStyle=`rgba(${col},.65)`;ctx.lineWidth=1;
+    ctx.fillRect(x,yt,Math.max(4,W-right-x),yb-yt);ctx.strokeRect(x,yt,Math.max(4,W-right-x),yb-yt);
+    ctx.fillStyle=`rgba(${col},.95)`;ctx.textAlign='left';ctx.fillText(z.kind+(z.d>0?' ↑':' ↓'),x+3,yt+12);
+  }
+  // candles
+  bars.forEach((b,j)=>{
+    const x=left+j*step+step/2,up=b.c>=b.o,col=up?'#24c78a':'#ff647c';
+    ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,y(b.h));ctx.lineTo(x,y(b.l));ctx.stroke();
+    const yo=y(Math.max(b.o,b.c)),yc=y(Math.min(b.o,b.c));
+    ctx.fillRect(x-candleW/2,yo,candleW,Math.max(1,yc-yo));
+  });
+  // BOS / CHoCH markers
+  for(const e of state.breaks){if(e.i<offset||e.i>=offset+bars.length)continue;
+    const x=left+(e.i-offset)*step+step/2,yy=y(e.level);
+    ctx.strokeStyle=e.d>0?'#24c78a':'#ff647c';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(left+(e.from-offset)*step+step/2,yy);ctx.lineTo(x,yy);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=e.d>0?'#24c78a':'#ff647c';ctx.textAlign='center';ctx.fillText(e.choch?'CHoCH':'BOS',x,yy+(e.d>0?-8:14));
+  }
+  if($('showSweep').checked)for(const e of state.sweeps){if(e.i<offset||e.i>=offset+bars.length)continue;
+    const x=left+(e.i-offset)*step+step/2,yy=y(e.level);ctx.fillStyle=e.d>0?'#6ee7e0':'#ffb454';ctx.beginPath();ctx.arc(x,yy,4,0,Math.PI*2);ctx.fill();
+  }
+  // CVD divergence / absorption markers on their actual signal bars.
+  for(const e of state.cvdEvents){
+    if(e.i<offset||e.i>=offset+bars.length)continue;
+    const j=e.i-offset,b=bars[j],x=left+j*step+step/2;
+    const yy=e.d>0?y(b.l)-10:y(b.h)+10;
+    ctx.fillStyle=e.d>0?'#6ee7e0':'#ffb454';ctx.strokeStyle='#0d1526';ctx.lineWidth=1.5;
+    if(e.kind==='absorption'){
+      ctx.beginPath();ctx.moveTo(x,yy-5);ctx.lineTo(x+5,yy);ctx.lineTo(x,yy+5);ctx.lineTo(x-5,yy);ctx.closePath();ctx.fill();ctx.stroke();
+    }else{
+      ctx.beginPath();if(e.d>0){ctx.moveTo(x,yy-5);ctx.lineTo(x+5,yy+4);ctx.lineTo(x-5,yy+4);}else{ctx.moveTo(x,yy+5);ctx.lineTo(x+5,yy-4);ctx.lineTo(x-5,yy-4);}ctx.closePath();ctx.fill();ctx.stroke();
+    }
+  }
+  // x-axis labels
+  ctx.fillStyle='#93a4bf';ctx.textAlign='center';
+  for(let j=0;j<bars.length;j+=Math.max(1,Math.floor(bars.length/7)))ctx.fillText(shortTime(bars[j].t),left+j*step+step/2,465);
+  // CVD lower panel
+  ctx.strokeStyle='#293852';ctx.beginPath();ctx.moveTo(left,cvdTop);ctx.lineTo(W-right,cvdTop);ctx.moveTo(left,cvdBottom);ctx.lineTo(W-right,cvdBottom);ctx.stroke();
+  ctx.textAlign='left';ctx.fillStyle='#93a4bf';ctx.fillText('CVD · Binance taker volume',left,cvdTop-9);
+  if($('showCVD').checked){
+    const vals=state.cvd.slice(offset,offset+bars.length).filter(Number.isFinite);
+    if(vals.length>1){
+      let mn=Math.min(...vals),mx=Math.max(...vals);if(mx===mn){mx+=1;mn-=1;}
+      const cy=v=>cvdBottom-(v-mn)/(mx-mn)*(cvdBottom-cvdTop);
+      ctx.strokeStyle='#54a6ff';ctx.lineWidth=2;ctx.beginPath();let started=false;
+      state.cvd.slice(offset,offset+bars.length).forEach((v,j)=>{if(!Number.isFinite(v)){started=false;return;}const x=left+j*step+step/2;if(!started){ctx.moveTo(x,cy(v));started=true;}else ctx.lineTo(x,cy(v));});ctx.stroke();
+      ctx.fillStyle='#93a4bf';ctx.textAlign='right';ctx.fillText(fmt(mx,0),left-7,cvdTop+5);ctx.fillText(fmt(mn,0),left-7,cvdBottom);
+    }
+  }
+  ctx.fillStyle='#93a4bf';ctx.textAlign='left';ctx.fillText('Thời gian (giờ Việt Nam)',left,638);
+}
+function renderEvents(){
+  const all=[];
+  state.breaks.forEach(e=>all.push({i:e.i,d:e.d,type:e.choch?'CHoCH':'BOS',detail:`Đóng cửa vượt swing ${fmt(e.level,1)}. OB mới: ${fmt(e.obBot,1)}–${fmt(e.obTop,1)}.`}));
+  state.sweeps.forEach(e=>all.push({i:e.i,d:e.d,type:'Liquidity Sweep',detail:`Râu nến vượt swing ${fmt(e.level,1)} rồi đóng cửa quay vào trong.`}));
+  state.cvdEvents.forEach(e=>all.push({i:e.confirmed,d:e.d,type:e.type,detail:e.detail+(e.z!=null?` Z=${fmt(e.z,2)}.`:'')}));
+  state.zones.filter(z=>z.born>=state.bars.length-30).forEach(z=>all.push({i:z.born,d:z.d,type:z.kind+' mới',detail:`Vùng ${fmt(z.bot,1)}–${fmt(z.top,1)} được tạo.`}));
+  all.sort((a,b)=>b.i-a.i);
+  $('events').innerHTML=all.slice(0,35).map(e=>`<div class="event"><b class="${signClass(e.d)}">${e.type} · ${dirText(e.d)}</b><small>${timeText(state.bars[e.i].t)}</small><small>${e.detail}</small></div>`).join('')||'<div class="event">Chưa phát hiện sự kiện trong số nến đã tải.</div>';
+}
+function renderZones(){
+  const rows=state.live.slice().sort((a,b)=>b.born-a.born);
+  $('zoneTable').innerHTML=rows.map(z=>`<tr><td>${z.kind}</td><td class="${signClass(z.d)}">${dirText(z.d)}</td><td>${fmt(z.top,1)}</td><td>${fmt(z.bot,1)}</td><td>${shortTime(state.bars[z.born].t)}</td><td>${state.bars.length-1-z.born}</td></tr>`).join('')||'<tr><td colspan="6">Không có vùng nào còn hiệu lực.</td></tr>';
+}
+function renderReadout(){
+  const last=state.bars.at(-1),prev=state.bars.at(-6),d=state.delta.at(-1),br=state.buyRatio.at(-1);
+  const lastBreak=state.breaks.at(-1),cvdNow=state.cvd.at(-1),cvdPrev=state.cvd.at(-6);
+  const cvdDrift=Number.isFinite(cvdNow)&&Number.isFinite(cvdPrev)?cvdNow-cvdPrev:null;
+  const parts=[];
+  if(lastBreak)parts.push(`<b>Cấu trúc gần nhất:</b> ${lastBreak.choch?'CHoCH':'BOS'} ${dirText(lastBreak.d)} tại ${fmt(lastBreak.level,1)} (xác nhận ${timeText(state.bars[lastBreak.i].t)}).`);
+  else parts.push('<b>Cấu trúc:</b> Chưa có BOS/CHoCH trong cửa sổ dữ liệu.');
+  if(Number.isFinite(d))parts.push(`<b>Order flow nến cuối:</b> Delta ${fmt(d,2)} BTC; Taker Buy ${(br*100).toFixed(1)}% tổng khối lượng. ${d>0?'Mua chủ động trội hơn.':d<0?'Bán chủ động trội hơn.':'Hai phía cân bằng.'}`);
+  if(Number.isFinite(cvdDrift))parts.push(`<b>CVD 5 nến:</b> ${cvdDrift>0?'đang tăng':'đang giảm'} (${fmt(cvdDrift,2)} BTC).`);
+  const nearby=state.live.filter(z=>last.c<=z.top&&last.c>=z.bot).sort((a,b)=>b.born-a.born);
+  if(nearby.length)parts.push(`<b>Vị trí giá:</b> giá đóng cửa đang nằm trong ${nearby.length} vùng SMC còn hiệu lực (${nearby.slice(0,3).map(z=>z.kind+' '+dirText(z.d)).join(', ')}).`);
+  else parts.push('<b>Vị trí giá:</b> giá đóng cửa không nằm bên trong vùng SMC còn hiệu lực.');
+  const recent=state.cvdEvents.filter(e=>e.confirmed>=state.bars.length-20).at(-1);
+  if(recent)parts.push(`<b>Order flow event gần đây:</b> ${recent.type} (${timeText(state.bars[recent.i].t)}).`);
+  parts.push('<b>Diễn giải:</b> Đây là mô tả các bằng chứng riêng lẻ. Khi cấu trúc và Delta mâu thuẫn, hệ thống ghi nhận mâu thuẫn thay vì tự ép thành LONG/SHORT.');
+  $('readout').innerHTML=parts.map(x=>`<div style="margin:4px 0">${x}</div>`).join('');
+}
+function renderStats(){
+  const last=state.bars.at(-1),atr=state.atr.at(-1),cvd=state.cvd.at(-1),delta=state.delta.at(-1);
+  $('price').textContent=fmt(last.c,1);$('atr').textContent=fmt(atr,1);
+  $('cvd').textContent=fmt(cvd,1);$('delta').textContent=fmt(delta,2);
+  $('zones').textContent=state.live.length;
+  const br=state.buyRatio.at(-1);$('buyRatio').textContent=Number.isFinite(br)?fmt(br*100,1)+'%':'—';
+  const miss=state.quality.missing||0;
+  $('quality').className='note '+(miss===0?'good':'');
+  $('quality').innerHTML=`Đã tải ${state.bars.length} nến 15m đã đóng và ${state.ltf.length} nến 1m đã đóng. ${miss===0?'Tất cả nến 15m đều ghép đủ 15 nến 1m.':`Có ${miss} nến 15m thiếu dữ liệu 1m; Delta/CVD tại các nến đó bị để trống.`}<br>Thời điểm nến 15m mới nhất: ${timeText(last.t)}.<br>Delta = Taker Buy Base Volume − Taker Sell Base Volume (tính từ trường Binance cung cấp). CVD liên tục trên cửa sổ dữ liệu đang tải.`;
+}
+function applyMarketData(m15,m1,statusPrefix='Đã cập nhật'){
+  if(m15.length<40)throw new Error('Không đủ nến 15m để phân tích.');
+  state.bars=m15;state.ltf=m1;state.atr=calcATR(m15,14);
+  const smc=calcSMC(m15,state.atr);
+  state.zones=smc.zones;state.live=smc.live;state.breaks=smc.breaks;state.sweeps=smc.sweeps;
+  const cv=calcCVD(m15,m1);state.delta=cv.delta;state.cvd=cv.cvd;state.buy=cv.buy;state.sell=cv.sell;state.buyRatio=cv.buyRatio;state.cvdEvents=cv.events;state.quality={missing:cv.missing};
+  state.supertrend=calcSupertrend(m15,10,3);state.dmi=calcDMI(m15,14,14);state.loadedAt=Date.now();state.candidate=detectCandidate();
+  renderStats();renderReadout();renderEvents();renderZones();renderSignal();draw();
+  $('status').textContent=`${statusPrefix} ${new Date().toLocaleTimeString('vi-VN')} · ${m15.length} nến 15m`;
+}
+let marketRefreshBusy=false;
+async function load(){
+  if(marketRefreshBusy)return;marketRefreshBusy=true;
+  $('status').textContent='Đang tải BTCUSDT Futures…';$('refresh').disabled=true;
+  try{
+    const [m15,recent1m]=await Promise.all([getKlines('15m',200),getKlines('1m',1500)]);
+    if(m15.length<40)throw new Error('Không đủ nến 15m để phân tích.');
+    const olderEnd=recent1m.length?recent1m[0].t-1:null;
+    const older1m=olderEnd?await getKlines('1m',1500,`&endTime=${olderEnd}`):[];
+    applyMarketData(m15,[...older1m,...recent1m].sort((a,b)=>a.t-b.t));
+  }catch(err){
+    $('status').textContent='Không tải được dữ liệu';state.candidate=null;$('analyzeAI').disabled=true;$('signalState').textContent='LỖI / CHƯA CÓ DỮ LIỆU';$('signalDetail').textContent=err.message;
+    $('quality').className='note';$('quality').textContent=err.message+' Nếu mở file trên điện thoại mà lỗi mạng/CORS, thử mở lại bằng Chrome khi có Internet. Không cần nhập API key.';
+    $('events').innerHTML=`<div class="event"><b class="bear">Lỗi dữ liệu</b><small>${err.message}</small></div>`;
+  }finally{$('refresh').disabled=false;marketRefreshBusy=false;}
+}
+async function refreshLatest(){
+  if(marketRefreshBusy)return;
+  if(!state.bars.length||Date.now()-state.loadedAt>45*60*1000){await load();return;}
+  marketRefreshBusy=true;
+  try{
+    const [new15,new1]=await Promise.all([getKlines('15m',5),getKlines('1m',30)]);
+    const map15=new Map([...state.bars,...new15].map(b=>[b.t,b]));
+    const map1=new Map([...state.ltf,...new1].map(b=>[b.t,b]));
+    const m15=[...map15.values()].sort((a,b)=>a.t-b.t).slice(-200);
+    const m1=[...map1.values()].sort((a,b)=>a.t-b.t).slice(-3000);
+    applyMarketData(m15,m1,'Tự cập nhật');
+  }catch(err){$('status').textContent=`Tự cập nhật lỗi: ${err.message} · giữ dữ liệu cũ`;}
+  finally{marketRefreshBusy=false;}
+}
+const AI_KEY_STORAGE='btc_smc_cvd_ai_key_v1';
+let aiRunController=null;
+function setAIProviderUI(){
+  const provider=$('aiProvider').value;
+  $('aiModel').value=provider==='gemini'?'gemini-3.5-flash-lite':'openai/gpt-oss-20b';
+  $('aiProgress').textContent=provider==='groq'?'Groq: 5 lượt riêng, cách nhau khoảng 100 giây; tổng thời gian tối đa 10 phút.':'Gemini: một lượt phân tích như trước.';
+  $('aiKey').value='';
+  try{const saved=JSON.parse(localStorage.getItem(AI_KEY_STORAGE)||'{}');if(saved.provider===provider&&saved.key){$('aiKey').value=saved.key;$('rememberAIKey').checked=true;}}catch(e){}
+  $('aiStatus').textContent=provider==='gemini'?'Gemini API: dùng model có quota Free trong Google AI Studio.':'Groq Free: quota miễn phí; nếu hết quota API trả lỗi 429, không cần nâng cấp.';
+}
+function buildAIContext(){
+  if(!state.bars.length)throw new Error('Chưa có dữ liệu thị trường. Hãy bấm “Tải dữ liệu mới” trước.');
+  // Compact payload for free-tier providers: recent candles + only the newest actionable events.
+  const count=48,offset=Math.max(0,state.bars.length-count),bars=state.bars.slice(offset);
+  // Compact candle tuple: [UTC_ms, open, high, low, close, volume, ATR14, delta, takerBuyRatio].
+  const candles=bars.map((b,j)=>{const i=offset+j;return [b.t,b.o,b.h,b.l,b.c,b.v,state.atr[i],state.delta[i],state.buyRatio[i]];});
+  // Zone tuple: [kind, direction(+1 bullish/-1 bearish), top, bottom, ageBars, touches].
+  const activeZones=state.live.slice().sort((a,b)=>b.born-a.born).slice(0,12).map(z=>[z.kind,z.d,z.top,z.bot,state.bars[z.born].t,state.bars.length-1-z.born,z.touches||0]);
+  // Keep only recent events within the candle window, then cap each event family.
+  const structure=state.breaks.filter(e=>e.i>=offset).slice(-10).map(e=>[e.choch?'CHoCH':'BOS',e.d,state.bars[e.i].t,e.level,e.obTop,e.obBot]);
+  const sweeps=state.sweeps.filter(e=>e.i>=offset).slice(-8).map(e=>[e.d,state.bars[e.i].t,e.level]);
+  const cvdEvents=state.cvdEvents.filter(e=>e.confirmed>=offset).slice(-8).map(e=>[e.type,e.d,state.bars[e.confirmed].t,e.price,e.z]);
+  const context={s:'BTCUSDT',m:'Binance USDⓈ-M Futures',tf:'15m',updated:Date.now(),schema:{c:'[UTC_ms,O,H,L,C,V,ATR14,Delta,TakerBuyRatio]',z:'[kind,direction(+1/-1),top,bottom,bornUTC_ms,ageBars,touches]',st:'[BOS/CHoCH,direction(+1/-1),UTC_ms,brokenSwing,OB_top,OB_bottom]',sw:'[direction(+1/-1),UTC_ms,sweptLevel]',ce:'[eventType,direction(+1/-1),UTC_ms,price,zScore]'},latest:{close:bars.at(-1).c,atr14:state.atr.at(-1),delta15m:state.delta.at(-1),cvdWindow:state.cvd.at(-1),takerBuyRatio:state.buyRatio.at(-1),activeZoneCount:state.live.length,missingM1Bars:state.quality.missing||0},candidate:state.candidate,indicators:{supertrend:{period:10,multiplier:3,direction:state.supertrend.dir.at(-1),line:state.supertrend.line.at(-1)},dmiAdx:{diLength:14,adxSmoothing:14,plusDI:state.dmi?.plus.at(-1),minusDI:state.dmi?.minus.at(-1),adx:state.dmi?.adx.at(-1)}},notes:{smc:'Wilder ATR14; swing=3; BOS/CHoCH on closed-candle close through unbroken swing; FVG>=0.20 ATR; sweep extension>=0.10 ATR; OB invalidated by far-edge close; FVG by far-edge wick.',cvd:'Delta=2*takerBuyBaseVolume-totalBaseVolume; M1 aggregated to M15. CVD cumulative only within loaded 200-bar window. Candle-aggregated, not true tick/price-level footprint.',limits:'Closed candles only; SMC is a research port, not guaranteed parity. Missing M1 bars count is provided.'},candles,structure,sweeps,cvdEvents,zones:activeZones,latestDeltaRows:state.delta.slice(-3).map((d,j)=>[state.bars[state.bars.length-3+j].t,d,state.buyRatio[state.bars.length-3+j]])};
+  // Hard guard: leave headroom below Groq's 8K TPM for system instructions and completion.
+  let json=JSON.stringify(context);
+  while(json.length>15000 && context.candles.length>24){context.candles.shift();json=JSON.stringify(context);}
+  while(json.length>15000 && context.zones.length>5){context.zones.pop();json=JSON.stringify(context);}
+  while(json.length>15000 && context.structure.length>4){context.structure.shift();json=JSON.stringify(context);}
+  while(json.length>15000 && context.sweeps.length>3){context.sweeps.shift();json=JSON.stringify(context);}
+  while(json.length>15000 && context.cvdEvents.length>3){context.cvdEvents.shift();json=JSON.stringify(context);}
+  json=JSON.stringify(context);
+  if(json.length>15000)throw new Error('Dữ liệu phân tích vẫn quá lớn. Hãy tải lại dữ liệu rồi thử lại.');
+  context._payloadChars=json.length;
+  return context;
+}
+const AI_SYSTEM_PROMPT=`Bạn là bộ phận KIỂM ĐỊNH tín hiệu BTCUSDT Futures M15, không phải người kể báo cáo. Chỉ dùng dữ liệu JSON được cung cấp. Tín hiệu ứng viên được tạo bởi Supertrend(10,3), DMI/ADX(14,14) và sự kiện SMC; bạn phải kiểm tra lại độc lập bằng toàn bộ nến, SMC, CVD/Delta và bối cảnh. Không mặc định ứng viên đúng. Nếu có bất kỳ xung đột nghiêm trọng, dữ liệu thiếu/cũ, cấu trúc ngược chiều, CVD/Delta phản đối mạnh, hoặc không tính được SL theo điểm vô hiệu hợp lý thì kết luận WAIT. Chỉ xuất LONG/SHORT nếu Entry, TP, SL có căn cứ rõ ràng và tỷ lệ reward:risk tối thiểu 1:2 sau chi phí ước tính; không được nói tỷ lệ này bảo đảm thắng. Entry được phép là LIMIT chờ khớp; không đuổi theo giá. TP phải nằm trước vùng cản/đích thanh khoản phù hợp; SL nằm ngoài điểm vô hiệu cấu trúc, không đặt tùy tiện. Nếu không đủ căn cứ để tính thì WAIT, không bịa. Không tự tạo xác suất, đòn bẩy, dữ liệu order book/footprint hoặc gửi lệnh.
+
+ĐẦU RA BẮT BUỘC, tối đa 6 dòng, không giải thích dài:
+BTCUSDT — LONG / SHORT / WAIT
+Entry: [giá] USDT (LIMIT hoặc MARKET; nếu WAIT ghi —)
+TP: [giá] USDT
+SL: [giá] USDT
+R:R: 1:[x] (nếu WAIT ghi —)
+Trạng thái: CHỜ KHỚP / CÓ THỂ VÀO / ĐỨNG NGOÀI — [một lý do rất ngắn].
+
+R:R là tỷ lệ lợi nhuận/rủi ro, không phải win rate. Nếu chưa có dữ liệu phí/slippage cụ thể, không tuyên bố R:R net chính xác; hãy dùng biên an toàn và WAIT nếu lợi thế 1:2 không còn rõ.`;
+async function callGemini(key,model,context){
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({systemInstruction:{parts:[{text:AI_SYSTEM_PROMPT}]},contents:[{role:'user',parts:[{text:'Phân tích dữ liệu thị trường sau đây.\n'+JSON.stringify(context)}]}],generationConfig:{temperature:0.25,maxOutputTokens:2200}})});
+  const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error?.message||`Gemini HTTP ${res.status}`);
+  return (data.candidates||[]).flatMap(c=>c.content?.parts||[]).map(p=>p.text||'').join('\n').trim()||'Gemini không trả về nội dung văn bản.';
+}
+async function callGroqRequest(key,model,messages,signal,maxTokens=1200){
+  // GPT-OSS may spend a small completion budget on internal reasoning and return an empty content field.
+  // Disable reasoning output and request low reasoning effort so the budget is reserved for the user-facing answer.
+  const body={model,messages,temperature:0.2,max_completion_tokens:maxTokens,include_reasoning:false};
+  if(/^openai\/gpt-oss-(20b|120b)$/i.test(model))body.reasoning_effort='low';
+  const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',signal,headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify(body)});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok){const err=new Error(data.error?.message||`Groq HTTP ${res.status}`);err.status=res.status;err.retryAfter=Number(res.headers.get('retry-after')||0);err.resetTokens=res.headers.get('x-ratelimit-reset-tokens')||'';throw err;}
+  const choice=data.choices?.[0]||{},message=choice.message||{};
+  const text=typeof message.content==='string'?message.content:Array.isArray(message.content)?message.content.map(x=>typeof x==='string'?x:(x.text||'')).join('\n'):'';
+  if(!text.trim()){
+    const reason=choice.finish_reason==='length'?' Mô hình đã chạm giới hạn token đầu ra trước khi tạo câu trả lời cuối.':message.refusal?' Mô hình từ chối tạo câu trả lời.':message.reasoning?' Model chỉ trả phần reasoning, không có nội dung trả lời cuối.':' Phản hồi không có trường message.content.';
+    const err=new Error('Groq không tạo được phần văn bản kết quả.'+reason+` (finish_reason: ${choice.finish_reason||'không rõ'}; completion_tokens: ${data.usage?.completion_tokens??'không rõ'}).`);
+    err.emptyContent=true;throw err;
+  }
+  return {text:text.trim(),headers:{remaining:res.headers.get('x-ratelimit-remaining-tokens'),reset:res.headers.get('x-ratelimit-reset-tokens'),requests:res.headers.get('x-ratelimit-remaining-requests')}};
+}
+const GROQ_STAGE_SYSTEM=`Bạn là chuyên gia phân tích BTCUSDT Futures M15. Chỉ dùng dữ liệu được gửi; không bịa. Nến là [UTC_ms,O,H,L,C,V,ATR14,Delta,TakerBuyRatio]. Delta/CVD lấy từ Binance kline, không phải footprint/tick thật; CVD chỉ tích lũy trong cửa sổ dữ liệu tải. Đây là phân tích theo từng phần, CHƯA được kết luận giao dịch cuối cùng. Hãy đọc kỹ dữ liệu, ghi nhận diễn biến theo thời gian và trả về bản ghi nhớ có cấu trúc ngắn bằng tiếng Việt, tối đa khoảng 250 từ: xu hướng/biên độ, đỉnh đáy quan trọng, vùng giá, bằng chứng tăng, bằng chứng giảm, sự kiện đáng chú ý, điều chưa chắc chắn. Không đưa xác suất, không bịa entry/SL/TP.`;
+const GROQ_FINAL_SYSTEM=`Bạn là bộ phận KIỂM ĐỊNH tín hiệu BTCUSDT Futures M15. Tổng hợp 4 phần lịch sử, SMC, CVD/Delta và ứng viên do bộ lọc tạo. Không mặc định ứng viên đúng. Kiểm tra Supertrend(10,3), DMI/ADX(14,14), BOS/CHoCH, OB/FVG, sweep, CVD/Delta và dữ liệu thiếu. BẮT BUỘC đối chiếu timestamp của từng BOS/CHoCH với đúng nến M15 và mức giá phá swing; đối chiếu timestamp/ranh giới/loại OB hoặc FVG với zone payload; đối chiếu Delta với timestamp nến mới nhất và latestDeltaRows. Không gán nhầm giá của nến khác thời điểm, không gọi OB là FVG hoặc ngược lại. Nếu bất kỳ timestamp/giá nào không khớp hoặc không thể xác minh, xem đó là mâu thuẫn và WAIT. Nếu có xung đột nghiêm trọng, dữ liệu cũ/thiếu, cấu trúc ngược chiều hoặc không xác định được điểm vô hiệu hợp lý thì WAIT. Chỉ LONG/SHORT khi Entry, TP, SL có căn cứ và R:R tối thiểu 1:2 sau chi phí ước tính; không cam kết thắng. Entry có thể là LIMIT; không đuổi giá. TP trước vùng cản/đích thanh khoản; SL ngoài điểm vô hiệu cấu trúc. Không bịa giá, xác suất, leverage, order book/footprint. Không gửi lệnh. Trả lời tối đa 6 dòng, đúng mẫu: BTCUSDT — LONG/SHORT/WAIT; Entry: ... USDT (LIMIT/MARKET); TP: ...; SL: ...; R:R: 1:x; Trạng thái: CHỜ KHỚP/CÓ THỂ VÀO/ĐỨNG NGOÀI — một lý do ngắn. Nếu WAIT thì Entry/TP/SL/R:R ghi —.`;
+function makeGroqStages(){
+  if(!state.bars.length)throw new Error('Chưa có dữ liệu thị trường. Hãy tải dữ liệu mới trước.');
+  const n=state.bars.length, chunk=Math.ceil(n/4), stages=[];
+  for(let k=0;k<4;k++){
+    const from=k*chunk,to=Math.min(n,from+chunk);if(from>=to)continue;
+    const candles=state.bars.slice(from,to).map((b,j)=>{const i=from+j;return [b.t,b.o,b.h,b.l,b.c,b.v,state.atr[i],state.delta[i],state.buyRatio[i]];});
+    stages.push({kind:'history',title:`Phần ${k+1}/4 · nến ${from+1}–${to}`,payload:{symbol:'BTCUSDT',timeframe:'15m',range:`${from+1}-${to}/${n}`,candles}});
+  }
+  const latest=state.bars.at(-1), zoneRows=state.live.slice().sort((a,b)=>b.born-a.born).slice(0,18).map(z=>[z.kind,z.d,z.top,z.bot,state.bars[z.born].t,n-1-z.born,z.touches||0]);
+  const structure=state.breaks.slice(-18).map(e=>[e.choch?'CHoCH':'BOS',e.d,state.bars[e.i].t,e.level,e.obTop,e.obBot]);
+  const sweeps=state.sweeps.slice(-12).map(e=>[e.d,state.bars[e.i].t,e.level]);
+  const smcPayload={symbol:'BTCUSDT',timeframe:'15m',latest:{time:latest.t,close:latest.c,atr14:state.atr.at(-1)},zoneSchema:'[kind,direction,top,bottom,bornUTC_ms,ageBars,touches]; keep OB and FVG types distinct.',zones:zoneRows,structure,sweeps,method:'Swing=3; BOS/CHoCH trên nến đóng; FVG>=0.20 ATR; sweep>=0.10 ATR; OB vô hiệu bởi close qua cạnh xa; FVG vô hiệu bởi wick qua cạnh xa.'};
+  const cvdRows=state.cvdEvents.slice(-15).map(e=>[e.type,e.d,state.bars[e.confirmed].t,e.price,e.z]);
+  const cvdPayload={symbol:'BTCUSDT',timeframe:'15m',latest:{time:latest.t,close:latest.c,delta:state.delta.at(-1),cvdWindow:state.cvd.at(-1),takerBuyRatio:state.buyRatio.at(-1)},events:cvdRows,missingM1Bars:state.quality.missing||0,method:'Delta=2*takerBuyBaseVolume-totalBaseVolume; M1 gộp thành M15; CVD tích lũy trong cửa sổ 200 nến; không phải tick/price-level footprint.'};
+  return {stages,smcPayload,cvdPayload};
+}
+const sleep=(ms,signal)=>new Promise((resolve,reject)=>{const id=setTimeout(resolve,ms);signal?.addEventListener('abort',()=>{clearTimeout(id);reject(new Error('Đã hủy phân tích.'));},{once:true});});
+function elapsedText(ms){const sec=Math.floor(ms/1000);return `${Math.floor(sec/60)} phút ${sec%60} giây`;}
+async function runGroqMultiStage(key,model){
+  const started=Date.now(),deadline=started+10*60*1000,prepared=makeGroqStages(),stages=prepared.stages,notes=[];let lastStart=0;
+  aiRunController=new AbortController();const signal=aiRunController.signal;const deadlineTimer=setTimeout(()=>aiRunController?.abort(),10*60*1000);
+  const total=stages.length+1;
+  try{
+    for(let i=0;i<stages.length;i++){
+      if(signal.aborted)throw new Error('Đã hủy phân tích.');
+      if(lastStart){const wait=Math.max(0,100000-(Date.now()-lastStart));if(Date.now()+wait+12000>deadline)throw new Error('Không còn đủ thời gian trong giới hạn 10 phút để gửi lượt kế tiếp.');
+        $('aiProgress').textContent=`Đã xong ${i}/${total} lượt. Đang chờ khoảng ${Math.ceil(wait/1000)} giây để tránh dồn TPM…`;await sleep(wait,signal);}
+      if(Date.now()>deadline)throw new Error('Đã chạm giới hạn 10 phút.');
+      lastStart=Date.now();const st=stages[i];
+      $('aiProgress').textContent=`Đang chạy lượt ${i+1}/${total}: ${st.title}. Đã chờ ${elapsedText(Date.now()-started)}.`;
+      const prior=notes.length?`\nBẢN GHI NHỚ CÁC LƯỢT TRƯỚC (chỉ dùng để nối bối cảnh):\n${notes.join('\n---\n')}`:'';
+      const msgs=[{role:'system',content:GROQ_STAGE_SYSTEM},{role:'user',content:`${st.title}. Đây là phần dữ liệu ${i+1}/${stages.length}. Phân tích phần này, không kết luận lệnh cuối.\n${JSON.stringify(st.payload)}${prior}`}];
+      const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);const abortOuter=()=>controller.abort();signal.addEventListener('abort',abortOuter,{once:true});
+      let result;
+      try{result=await callGroqRequest(key,model,msgs,controller.signal);}catch(err){
+        if(err.status===429){const retry=Math.max(err.retryAfter*1000,0);const resetMs=/^(\d+(?:\.\d+)?)(ms|s|m)$/.exec(err.resetTokens||'');const parsed=resetMs?Number(resetMs[1])*(resetMs[2]==='ms'?1:resetMs[2]==='m'?60000:1000):0;const wait=Math.max(retry,parsed,10000);
+          if(Date.now()+wait+15000<deadline){$('aiProgress').textContent=`Groq báo giới hạn quota. Chờ ${Math.ceil(wait/1000)} giây rồi thử lại đúng lượt này…`;await sleep(wait,signal);result=await callGroqRequest(key,model,msgs,signal);}else throw new Error('Groq đang giới hạn quota; thời gian reset vượt quá cửa sổ 10 phút. Không nâng cấp trả phí.');
+        }else if(err.name==='AbortError')throw new Error('Một lượt Groq mất quá 45 giây hoặc bị hủy.');else throw err;
+      }finally{clearTimeout(timer);signal.removeEventListener('abort',abortOuter);}
+      notes.push(`GHI NHỚ ${i+1} — ${st.title}:\n${result.text.slice(0,2200)}`);
+      const rem=result.headers.remaining?` · token còn trong cửa sổ: ${result.headers.remaining}`:'';
+      $('aiProgress').textContent=`Hoàn tất ${i+1}/${total} lượt${rem}. Đã chạy ${elapsedText(Date.now()-started)}.`;
+    }
+    const wait=Math.max(0,100000-(Date.now()-lastStart));if(Date.now()+wait+15000>deadline)throw new Error('Không đủ thời gian cho lượt tổng hợp cuối trong giới hạn 10 phút.');
+    $('aiProgress').textContent=`Đang chờ ${Math.ceil(wait/1000)} giây trước lượt tổng hợp cuối…`;await sleep(wait,signal);
+    if(Date.now()>deadline)throw new Error('Đã chạm giới hạn 10 phút trước khi tổng hợp.');
+    $('aiProgress').textContent=`Đang tổng hợp lượt ${total}/${total} · dữ liệu và 4 bản ghi nhớ · ${elapsedText(Date.now()-started)}.`;
+    const finalContext={symbol:'BTCUSDT',timeframe:'15m',latest:{time:state.bars.at(-1).t,close:state.bars.at(-1).c,atr14:state.atr.at(-1),delta:state.delta.at(-1),cvd:state.cvd.at(-1),takerBuyRatio:state.buyRatio.at(-1)},candidate:state.candidate,indicators:{supertrend:{period:10,multiplier:3,direction:state.supertrend.dir.at(-1),line:state.supertrend.line.at(-1)},dmiAdx:{diLength:14,adxSmoothing:14,plusDI:state.dmi?.plus.at(-1),minusDI:state.dmi?.minus.at(-1),adx:state.dmi?.adx.at(-1)}},smc:prepared.smcPayload,orderflow:prepared.cvdPayload,latestDeltaRows:state.delta.slice(-3).map((d,j)=>[state.bars[state.bars.length-3+j].t,d,state.buyRatio[state.bars.length-3+j]]),missingM1Bars:state.quality.missing||0,stageNotes:notes};
+    const final=await callGroqRequest(key,model,[{role:'system',content:GROQ_FINAL_SYSTEM},{role:'user',content:JSON.stringify(finalContext)}],signal,1800);
+    if(Date.now()>deadline)throw new Error('Kết quả tổng hợp vượt quá giới hạn 10 phút; không hiển thị như một tín hiệu còn mới.');
+    $('aiProgress').textContent=`Hoàn tất 5/5 lượt trong ${elapsedText(Date.now()-started)}. Groq Free · không gửi lệnh.`;
+    return final.text;
+  }finally{clearTimeout(deadlineTimer);aiRunController=null;}
+}
+async function analyzeWithAI(){
+  if(!state.candidate){$('aiStatus').textContent='WAIT: chưa có ứng viên đủ điều kiện. Không cần gọi AI.';return;}
+  if(Date.now()-state.candidate.barCloseTime>30*60*1000){state.candidate=null;renderSignal();$('aiStatus').textContent='Ứng viên đã quá 30 phút. Hãy tải dữ liệu mới trước khi phân tích.';return;}
+  const provider=$('aiProvider').value,key=$('aiKey').value.trim(),model=$('aiModel').value.trim();
+  if(!key){$('aiStatus').textContent='Bạn cần nhập API key.';$('aiKey').focus();return;}
+  if(!model){$('aiStatus').textContent='Bạn cần nhập tên model.';return;}
+  try{buildAIContext();}catch(e){$('aiStatus').textContent=e.message;return;}
+  if($('rememberAIKey').checked){try{localStorage.setItem(AI_KEY_STORAGE,JSON.stringify({provider,key}));}catch(e){$('aiStatus').textContent='Không lưu được key; vẫn có thể dùng trong phiên này.';}}
+  else{try{const saved=JSON.parse(localStorage.getItem(AI_KEY_STORAGE)||'{}');if(saved.provider===provider)localStorage.removeItem(AI_KEY_STORAGE);}catch(e){}}
+  $('analyzeAI').disabled=true;$('aiOutput').textContent='Đang chuẩn bị phân tích…';
+  try{
+    const answer=provider==='groq'?await runGroqMultiStage(key,model):await callGemini(key,model,buildAIContext());
+    $('aiOutput').textContent=answer;$('aiStatus').textContent=`Hoàn tất · ${provider==='gemini'?'Gemini một lượt':'Groq nhiều giai đoạn'} / ${model} · ${new Date().toLocaleString('vi-VN')}`;
+  }catch(e){$('aiOutput').textContent='Không hoàn tất được phân tích.\n\n'+e.message+'\n\nKhông có lệnh nào được gửi. Bạn có thể thử lại sau khi quota miễn phí hồi phục.';$('aiStatus').textContent='Phân tích chưa hoàn tất.';$('aiProgress').textContent='Đã dừng. Không dùng kết quả dở dang làm tín hiệu giao dịch.';}
+  finally{$('analyzeAI').disabled=false;}
+}
+window.__analyzeWithAI = analyzeWithAI;
+$('analyzeAI').disabled=true;
+$('aiProvider').addEventListener('change',setAIProviderUI);
+$('analyzeAI').addEventListener('click',analyzeWithAI);
+$('cancelAI').addEventListener('click',()=>{if(aiRunController){aiRunController.abort();$('aiProgress').textContent='Đang yêu cầu dừng…';}});
+$('clearAIKey').addEventListener('click',()=>{try{localStorage.removeItem(AI_KEY_STORAGE);}catch(e){}$('aiKey').value='';$('rememberAIKey').checked=false;$('aiStatus').textContent='Đã xóa API key được lưu trong trình duyệt.';});
+setAIProviderUI();
+$('refresh').addEventListener('click',load);
+$('bars').addEventListener('change',draw);
+['showOB','showFVG','showSweep','showCVD'].forEach(id=>$(id).addEventListener('change',draw));
+load();
+// Refresh Binance data every 60 seconds while the page is visible; AI is never called automatically.
+setInterval(()=>{if(document.visibilityState==='visible')refreshLatest();},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&state.bars.length&&Date.now()-state.loadedAt>60000)refreshLatest();});
+</script>
+<script>
+// Chẩn đoán trường hợp script chính bị dừng trước khi gắn sự kiện nút AI.
+(function(){
+  const btn=document.getElementById('analyzeAI'), status=document.getElementById('aiStatus');
+  if(!btn || !status) return;
+  if(typeof window.__analyzeWithAI !== 'function') {
+    status.textContent='Cảnh báo: phần JavaScript chính chưa khởi tạo. Hãy tải lại file bằng Chrome; nếu vẫn còn, gửi ảnh màn hình này.';
+    btn.addEventListener('click',()=>{status.textContent='Nút đã nhận thao tác, nhưng bộ phân tích chưa khởi tạo. Có lỗi JavaScript trước khi chạy AI.';});
+  }
+})();
+</script>
+</body>
+</html>
